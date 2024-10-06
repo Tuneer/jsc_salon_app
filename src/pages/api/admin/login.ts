@@ -1,6 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next';
 import bcrypt from 'bcryptjs';
 import mysql from 'mysql2/promise';
+import jwt from 'jsonwebtoken'; // Import JWT library
 
 // Create a connection pool
 const db = mysql.createPool({
@@ -9,6 +10,9 @@ const db = mysql.createPool({
   password: process.env.MYSQL_PASSWORD,
   database: process.env.MYSQL_DATABASE,
 });
+
+// Use a secret key from environment variables
+const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret_key';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === 'POST') {
@@ -35,8 +39,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         emailID: admin.email,
       };
 
+      // Generate a JWT token
+      const tokenAs = jwt.sign(
+        {
+          id: admin.id,
+          role: admin.role,
+          merchantId: admin.merchant_id || null,
+          email: admin.email,
+        },
+        JWT_SECRET,
+        { expiresIn: '1h' } // Token expires in 1 hour
+      );
+
+
       // If credentials are valid, you can use JWT for session management
-      res.status(200).json({success: true, emailID: admin.email,role: admin.role,token:});
+      res.status(200).json({success: true, emailID: admin.email,role: admin.role,token:tokenAs});
     } catch (error) {
       console.error('Login error:', error); // Log error to see the full stack trace
       res.status(500).json({ success: false, message: 'Internal Server Error' });
